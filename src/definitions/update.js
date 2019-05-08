@@ -1,6 +1,6 @@
 const { Definition } = require('mushimas-models')
 const { validateSchemas } = require('mushimas').validator
-const { find, lookupDefinition, getExistingConfig } = require('./utils')
+const { exists, lookupDefinition, getExistingConfig } = require('./utils')
 const immutableOptions = require('./immutableOptions')
 const flatten = require('./flatten')
 
