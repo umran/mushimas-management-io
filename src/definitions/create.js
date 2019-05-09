@@ -28,7 +28,7 @@ const commitDefinition = async (bucketId, args, ackTime, session) => {
     '@definition': args
   }], options)
 
-  return newDefinition._id.toString()
+  return newDefinition[0]._id.toString()
 }
 
 module.exports = async ({ environment, args, ackTime, session }) => {

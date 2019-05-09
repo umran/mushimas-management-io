@@ -10,7 +10,15 @@ const exists = (arr, lambda) => {
   return false
 }
 
-const parseDefinition = definition => {
+const find = (arr, lambda) => {
+  for (let i = 0; i < arr.length; i++) {
+    if (lambda(arr[i]) === true) {
+      return [arr[i], i]
+    }
+  }
+}
+
+const parseDefinition = (definition) => {
   const _class = definition.class
   const fields = definition.fields
 
@@ -65,8 +73,10 @@ const constructConfig = (existingConfig, definition) => {
 
 module.exports = {
   exists,
+  find,
   parseDefinition,
   lookupDefinition,
+  ensureUnique,
   getExistingConfig,
   constructConfig
 }
