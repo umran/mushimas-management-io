@@ -115,7 +115,12 @@ const validateDefinition = (definitions, definition) => {
   const newConfig = appendConfig(currentConfig, definition)
 
   // validate the new config
-  validateReferences(newConfig)
+  try {
+    validateReferences(newConfig)  
+  } catch(err) {
+    throw new Error('fields referencing non-existent or disabled definitions cannot be enabled')
+  }
+  
   validateEmbedded(newConfig)
 }
 

@@ -12,11 +12,11 @@ const environment = {
 }
 
 const definition = {
-  name: 'person',
-  class: 'collection',
+  name: 'contact',
+  class: 'embedded',
   fields: [
     {
-      name: 'name',
+      name: 'email',
       options: {
         type: 'string',
         required: true,

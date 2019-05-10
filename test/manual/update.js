@@ -15,11 +15,13 @@ const args = {
   _id: '5cd4feb103a301fce2739ec4',
   fields: [
     {
-      name: 'name',
+      name: 'contact',
       options: {
-        type: 'string',
+        type: 'reference',
         required: true,
-        enabled: false
+        enabled: true,
+        es_indexed: true,
+        ref: 'contact'
       }
     }
   ]
