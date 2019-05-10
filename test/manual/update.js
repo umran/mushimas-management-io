@@ -12,16 +12,14 @@ const environment = {
 }
 
 const args = {
-  _id: '5cd2bc8585d7b43f38311175',
+  _id: '5cd4feb103a301fce2739ec4',
   fields: [
     {
       name: 'name',
       options: {
         type: 'string',
-        required: false,
-        enabled: false,
-        es_indexed: true,
-        es_keyword: true
+        required: true,
+        enabled: false
       }
     }
   ]

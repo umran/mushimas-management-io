@@ -1,3 +1,4 @@
+const { validateSchema, validateReferences, validateEmbedded } = require('mushimas').validator
 const { Definition } = require('mushimas-models')
 
 const exists = (arr, lambda) => {
@@ -16,18 +17,28 @@ const find = (arr, lambda) => {
       return [arr[i], i]
     }
   }
+
+  return []
 }
 
-const parseDefinition = (definition) => {
+const parseDefinition = (definition, excludeDisabled=true) => {
   const _class = definition.class
   const fields = definition.fields
 
   const parsedFields = fields.reduce((parsed, field) => {
     if (field.options.type === 'array') {
-      if (field.options.item.enabled === true) {
+      if (field.options.item.enabled === false) {
+        if (excludeDisabled === false) {
+          parsed[field.name] = field.options
+        }
+      } else {
         parsed[field.name] = field.options
       }
-    } else if (field.options.enabled === true) {
+    } else if (field.options.enabled === false) {
+      if (excludeDisabled === false) {
+        parsed[field.name] = field.options
+      }
+    } else {
       parsed[field.name] = field.options
     }
 
@@ -42,41 +53,77 @@ const parseDefinition = (definition) => {
   }
 }
 
-const lookupDefinition = async (bucketId, _id) => {
-  return await Definition.findOne({ _id, '@state': { $ne: 'DELETED' }, '@bucketId': bucketId }).lean()
-}
+const getBucketDefinitions = async bucketId => {
+  const definitions = await Definition.find({ '@state': { $ne: 'DELETED' }, '@bucketId': bucketId }, { _id: 1, '@definition': 1, '@state': 1 }).lean()
 
-const ensureUnique = (existingConfig, definition) => {
-  Object.keys(existingConfig).forEach(key => {
-    if (key === definition.name) {
-      throw new Error('duplicate definition names are not allowed')
+  return definitions.map(definition => {
+    return {
+      _id: definition._id.toString(),
+      state: definition['@state'],
+      ...definition['@definition']
     }
   })
 }
 
-const getExistingConfig = async (bucketId) => {
-  let definitions = await Definition.find({ '@state': { $ne: 'DELETED' }, '@bucketId': bucketId }, { _id: 1, '@definition': 1 }).lean()
+const ensureUniqueDefinition = (definitions, definition) => {
+  definitions.forEach(def => {
+    if (def.name === definition.name) {
+      throw new Error(`the definition: ${definition.name} already exists`)
+    }
+  })
+}
 
-  return definitions.reduce((config, definition) => {
-    config[definition['@definition'].name] = parseDefinition(definition['@definition'])
+const getDefinition = (definitions, _id) => {
+  const matching = definitions.filter(def => def._id === _id)
+
+  if (matching.length > 0) {
+    return matching[0]
+  }
+}
+
+const getEnabledDefinitions = definitions => {
+  return definitions.filter(definition => definition.state === 'ENABLED')
+}
+
+const compileConfig = (relevantDefinitions) => {
+  return relevantDefinitions.reduce((config, definition) => {
+    config[definition.name] = parseDefinition(definition)
 
     return config
   }, {})
 }
 
-const constructConfig = (existingConfig, definition) => {
+const appendConfig = (currentConfig, definition) => {
   return {
-    ...existingConfig,
+    ...currentConfig,
     [definition.name]: parseDefinition(definition)
   }
+}
+
+const validateDefinition = (definitions, definition) => {
+  // independently validate the definition
+  const rawSchema = parseDefinition(definition, false)
+  validateSchema(rawSchema)
+
+  // get all enabled definitions
+  const enabledDefinitions = getEnabledDefinitions(definitions)
+
+  // compile all enabled definitions
+  const currentConfig = compileConfig(enabledDefinitions)
+
+  // append the definition to be validated to the compiled config
+  const newConfig = appendConfig(currentConfig, definition)
+
+  // validate the new config
+  validateReferences(newConfig)
+  validateEmbedded(newConfig)
 }
 
 module.exports = {
   exists,
   find,
-  parseDefinition,
-  lookupDefinition,
-  ensureUnique,
-  getExistingConfig,
-  constructConfig
+  getBucketDefinitions,
+  getDefinition,
+  ensureUniqueDefinition,
+  validateDefinition
 }

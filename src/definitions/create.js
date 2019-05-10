@@ -1,31 +1,30 @@
 const { Definition } = require('mushimas-models')
-const { validateSchemas } = require('mushimas').validator
-const { getExistingConfig, ensureUnique, constructConfig } = require('./utils')
+const { getBucketDefinitions, ensureUniqueDefinition, validateDefinition } = require('./utils')
 
-const validateDefinition = async (bucketId, definition) => {
-  let existingConfig = await getExistingConfig(bucketId)
+const validateCreate = async (bucketId, definition) => {
+  const definitions = await getBucketDefinitions(bucketId)
 
-  ensureUnique(existingConfig, definition)
+  // make sure the definition name is unique across all existing definitions
+  ensureUniqueDefinition(definitions, definition)
 
-  let newConfig = constructConfig(existingConfig, definition)
-
-  validateSchemas(newConfig)
+  // validate the definition
+  validateDefinition(definitions, definition)
 }
 
-const commitDefinition = async (bucketId, args, ackTime, session) => {
+const commitCreate = async (bucketId, definition, ackTime, session) => {
   let options
 
   if(session) {
     options = { session }
   }
 
-  let newDefinition = await Definition.create([{
-    '@state': 'DISABLED',
+  const newDefinition = await Definition.create([{
+    '@state': 'ENABLED',
     '@lastModified': ackTime,
     '@lastCommitted': new Date(),
     '@version': 0,
     '@bucketId': bucketId,
-    '@definition': args
+    '@definition': definition
   }], options)
 
   return newDefinition[0]._id.toString()
@@ -33,8 +32,8 @@ const commitDefinition = async (bucketId, args, ackTime, session) => {
 
 module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
-
-  await validateDefinition(bucket.id, args)
   
-  return await commitDefinition(bucket.id, args, ackTime, session)
+  await validateCreate(bucket.id, args)
+
+  return await commitCreate(bucket.id, args, ackTime, session)
 }

@@ -1,41 +1,51 @@
 const { Definition } = require('mushimas-models')
-const { validateSchemas } = require('mushimas').validator
-const { find, lookupDefinition, getExistingConfig, constructConfig } = require('./utils')
-const immutableOptions = require('./immutableOptions')
+const { find, getBucketDefinitions, getDefinition, validateDefinition } = require('./utils')
+const validOptions = require('./validOptions')
 const flatten = require('./flatten')
 
-const validateUpdate = async (bucketId, args) => {
-  const { _id, fields: updates } = args
+const validateOptionUpdate = (optionKey, optionValue, currentOptions) => {
+  const optionRules = validOptions[currentOptions.type][optionKey]
+  
+  if (!optionRules) {
+    throw new Error(`the following option: ${optionKey} is not valid for a field of type: ${currentOptions.type}`)
+  }
+  
+  if (optionRules.mutable === false && optionValue !== currentOptions[optionKey]) {
+    throw new Error(`the following option: ${optionKey} is immutable for a field of type: ${currentOptions.type}`)
+  }
+}
 
-  const definition = await lookupDefinition(bucketId, _id)
+const validateAndPrepareUpdate = async (bucketId, _id, updates) => {
+  const definitions = await getBucketDefinitions(bucketId)
+
+  const definition = getDefinition(definitions, _id)
 
   if (!definition) {
-    throw new Error('the specified definition could not be found')
+    throw new Error(`A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
+  }
+
+  if (definition.state !== 'ENABLED') {
+    throw new Error(`Definition with id: ${_id} is not enabled. Definitions must be enabled in order to be updated`) 
   }
   
   // first, update all existing fields
-  const existingFields = definition['@definition'].fields
+  const existingFields = definition.fields
+  
+  // this variable must be mutable
   let updatedFields = [ ...existingFields ]
 
   // for each update field, if the field already exists, update it
   updates.forEach(update => {
-    let [existingField, fieldIndex] = find(existingFields, field => field.name === update.name)
+    const [existingField, fieldIndex] = find(existingFields, field => field.name === update.name)
 
     if (existingField) {
       // merge existing options with each new option if it is legal
       const mergedOptions = Object.keys(update.options).reduce((agg, optionKey) => {
+
         // handle the case where optionKey === 'item'
         if (optionKey === 'item') {
-
-          // if existingField is not an array throw an exception
-          if (existingField.options.type !== 'array') {
-            throw new Error('the item option is only valid inside array fields')
-          }
-
-          agg['item'] = Object.keys(update.options.item).reduce((innerAgg, innerOptionKey) => {
-            if (immutableOptions.includes(innerOptionKey) && existingField.options.item[innerOptionKey] !== update.options.item[innerOptionKey]) {
-              throw new Error('cannot mutate immutable field options')
-            }
+          agg[optionKey] = Object.keys(update.options.item).reduce((innerAgg, innerOptionKey) => {
+            validateOptionUpdate(innerOptionKey, update.options.item[innerOptionKey], existingField.options.item)
 
             innerAgg[innerOptionKey] = update.options.item[innerOptionKey]
 
@@ -43,9 +53,8 @@ const validateUpdate = async (bucketId, args) => {
           }, { ...existingField.options.item })
 
         } else {
-          if (immutableOptions.includes(optionKey) && existingField.options[optionKey] !== update.options[optionKey]) {
-            throw new Error('cannot mutate immutable field options')
-          }
+          // ensure the optionKey is a valid option for the declared field type
+          validateOptionUpdate(optionKey, update.options[optionKey], existingField.options)
 
           agg[optionKey] = update.options[optionKey]
         }
@@ -63,21 +72,18 @@ const validateUpdate = async (bucketId, args) => {
   })
 
   const updatedDefinition = {
-    ...definition['@definition'],
+    ...definition,
     fields: updatedFields
   }
 
-  let existingConfig = await getExistingConfig(bucketId)
-  let updatedConfig = constructConfig(existingConfig, updatedDefinition)
+  // finally validate the updated definition
+  validateDefinition(definitions, updatedDefinition)
 
-  // finally validate the updated config
-  validateSchemas(updatedConfig)
-
+  return updatedFields
 }
 
-const commitUpdate = async (bucketId, args, ackTime, session) => {
-  let { _id, fields } = args
-  
+const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
+  // this variable must be mutable
   let options
 
   if (session) {
@@ -90,11 +96,11 @@ const commitUpdate = async (bucketId, args, ackTime, session) => {
 
   const matchCondition = {
     _id,
-    '@state': { $ne: 'DELETED' },
+    '@state': 'ENABLED',
     '@bucketId': bucketId
   }
 
-  const definition = await Definition.findOneAndUpdate(matchCondition, {
+  const updatedDefinition = await Definition.findOneAndUpdate(matchCondition, {
     $set: {
       ...flatDef,
       '@lastModified': ackTime,
@@ -105,17 +111,14 @@ const commitUpdate = async (bucketId, args, ackTime, session) => {
     }
   }, options)
 
-  if (!definition) {
-    throw new Error('the specified definition could not be found')
-  }
-
-  return _id
+  return updatedDefinition._id.toString()
 }
 
 module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
+  const { _id, fields } = args
   
-  await validateUpdate(bucket.id, args)
+  const updatedFields = await validateAndPrepareUpdate(bucket.id, _id, fields)
 
-  return await commitUpdate(bucket.id, args, ackTime, session)
+  return await commitUpdate(bucket.id, _id, updatedFields, ackTime, session)
 }
