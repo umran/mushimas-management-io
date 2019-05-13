@@ -2,30 +2,31 @@ const { Definition } = require('mushimas-models')
 const { find, getBucketDefinitions, getDefinition, validateDefinition } = require('./utils')
 const validOptions = require('./validOptions')
 const flatten = require('./flatten')
+const { ResourceError, ValidationError } = require('../errors')
 
 const validateOptionUpdate = (optionKey, optionValue, currentOptions) => {
   const optionRules = validOptions[currentOptions.type][optionKey]
   
   if (!optionRules) {
-    throw new Error(`the following option: ${optionKey} is not valid for a field of type: ${currentOptions.type}`)
+    throw new ValidationError('unrecognizedOption', `the following option: ${optionKey} is not valid for a field of type: ${currentOptions.type}`)
   }
   
   if (optionRules.mutable === false && optionValue !== currentOptions[optionKey]) {
-    throw new Error(`the following option: ${optionKey} is immutable for a field of type: ${currentOptions.type}`)
+    throw new ValidationError('immutableOption', `the following option: ${optionKey} is immutable for a field of type: ${currentOptions.type}`)
   }
 }
 
-const validateAndPrepareUpdate = async (bucketId, _id, updates) => {
+const validateUpdate = async (bucketId, _id, updates) => {
   const definitions = await getBucketDefinitions(bucketId)
 
   const definition = getDefinition(definitions, _id)
 
   if (!definition) {
-    throw new Error(`A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
+    throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
   }
 
   if (definition.state !== 'ENABLED') {
-    throw new Error(`Definition with id: ${_id} is not enabled. Definitions must be enabled in order to be updated`) 
+    throw new ValidationError('disabledDefinition', `Definition with id: ${_id} is not enabled. Definitions must be enabled in order to be updated`) 
   }
   
   // first, update all existing fields
@@ -77,9 +78,9 @@ const validateAndPrepareUpdate = async (bucketId, _id, updates) => {
   }
 
   // finally validate the updated definition
-  validateDefinition(definitions, updatedDefinition)
+  const updatedConfig = validateDefinition(definitions, updatedDefinition)
 
-  return updatedFields
+  return { updatedFields, updatedConfig }
 }
 
 const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
@@ -96,11 +97,11 @@ const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
 
   const matchCondition = {
     _id,
-    '@state': 'ENABLED',
-    '@bucketId': bucketId
+    '@bucketId': bucketId,
+    '@state': 'ENABLED'
   }
 
-  const updatedDefinition = await Definition.findOneAndUpdate(matchCondition, {
+  let updatedDefinition = await Definition.findOneAndUpdate(matchCondition, {
     $set: {
       ...flatDef,
       '@lastModified': ackTime,
@@ -111,14 +112,26 @@ const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
     }
   }, options)
 
-  return updatedDefinition._id.toString()
+  if (!updatedDefinition) {
+    throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
+  }
+
+  const details = {
+    id: updatedDefinition._id,
+    name: updatedDefinition['@definition'].name,
+    class: updatedDefinition['@definition'].class
+  }
+
+  return details
 }
 
 module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
   const { _id, fields } = args
   
-  const updatedFields = await validateAndPrepareUpdate(bucket.id, _id, fields)
+  const { updatedFields, updatedConfig } = await validateUpdate(bucket.id, _id, fields)
 
-  return await commitUpdate(bucket.id, _id, updatedFields, ackTime, session)
+  const definition = await commitUpdate(bucket.id, _id, updatedFields, ackTime, session)
+
+  return { bucket, definition, updatedConfig }
 }

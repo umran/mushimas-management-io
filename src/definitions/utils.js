@@ -1,5 +1,6 @@
 const { validateSchema, validateReferences, validateEmbedded } = require('mushimas').validator
 const { Definition } = require('mushimas-models')
+const { ValidationError } = require('../errors')
 
 const exists = (arr, lambda) => {
   for (let i = 0; i < arr.length; i++) {
@@ -68,7 +69,7 @@ const getBucketDefinitions = async bucketId => {
 const ensureUniqueDefinition = (definitions, definition) => {
   definitions.forEach(def => {
     if (def.name === definition.name) {
-      throw new Error(`the definition: ${definition.name} already exists`)
+      throw new ValidationError('alreadyExistsDefinition', `the definition: ${definition.name} already exists`)
     }
   })
 }
@@ -83,6 +84,10 @@ const getDefinition = (definitions, _id) => {
 
 const getEnabledDefinitions = definitions => {
   return definitions.filter(definition => definition.state === 'ENABLED')
+}
+
+const getRemainingEnabledDefinitions = (definitions, excludedDefinition) => {
+  return definitions.filter(definition => definition.state === 'ENABLED' && definition._id !== excludedDefinition._id)
 }
 
 const compileConfig = (relevantDefinitions) => {
@@ -103,7 +108,12 @@ const appendConfig = (currentConfig, definition) => {
 const validateDefinition = (definitions, definition) => {
   // independently validate the definition
   const rawSchema = parseDefinition(definition, false)
-  validateSchema(rawSchema)
+  
+  try {
+    validateSchema(rawSchema)
+  } catch (err) {
+    throw new ValidationError('invalidFormat', 'the definition does not conform to the expected format')
+  }
 
   // get all enabled definitions
   const enabledDefinitions = getEnabledDefinitions(definitions)
@@ -118,10 +128,65 @@ const validateDefinition = (definitions, definition) => {
   try {
     validateReferences(newConfig)  
   } catch(err) {
-    throw new Error('fields referencing non-existent or disabled definitions cannot be enabled')
+    throw new ValidationError('nullReference', 'fields referencing non-existent or disabled definitions cannot be enabled')
   }
   
-  validateEmbedded(newConfig)
+  try {
+    validateEmbedded(newConfig)
+  } catch(err) {
+    throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
+  }
+
+  return newConfig
+}
+
+const validateEnableDefinition = (definitions, definition) => {
+  // get all enabled definitions
+  const enabledDefinitions = getEnabledDefinitions(definitions)
+
+  // compile all enabled definitions
+  const currentConfig = compileConfig(enabledDefinitions)
+
+  // append the definition to be validated to the compiled config
+  const newConfig = appendConfig(currentConfig, definition)
+
+  // validate the new config
+  try {
+    validateReferences(newConfig)  
+  } catch(err) {
+    throw new ValidationError('nullReference', 'fields referencing non-existent or disabled definitions cannot be enabled')
+  }
+  
+  try {
+    validateEmbedded(newConfig)
+  } catch(err) {
+    throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
+  }
+
+  return newConfig
+}
+
+const validateDisableDefinition = (definitions, definition) => {
+  // get all enabled definitions except the definition to be disabled
+  const remainingEnabledDefinitions = getRemainingEnabledDefinitions(definitions, definition)
+
+  // compile all remaining enabled definitions
+  const newConfig = compileConfig(remainingEnabledDefinitions)
+
+  // validate the new config
+  try {
+    validateReferences(newConfig)  
+  } catch(err) {
+    throw new ValidationError('nullReference', 'fields referencing non-existent or disabled definitions cannot be enabled')
+  }
+  
+  try {
+    validateEmbedded(newConfig)
+  } catch(err) {
+    throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
+  }
+
+  return newConfig
 }
 
 module.exports = {
@@ -130,5 +195,7 @@ module.exports = {
   getBucketDefinitions,
   getDefinition,
   ensureUniqueDefinition,
-  validateDefinition
+  validateDefinition,
+  validateEnableDefinition,
+  validateDisableDefinition
 }

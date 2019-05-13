@@ -1,4 +1,5 @@
 const { Definition } = require('mushimas-models')
+const { generateHash } = require('mushimas-crypto')
 const { getBucketDefinitions, ensureUniqueDefinition, validateDefinition } = require('./utils')
 
 const validateCreate = async (bucketId, definition) => {
@@ -8,32 +9,57 @@ const validateCreate = async (bucketId, definition) => {
   ensureUniqueDefinition(definitions, definition)
 
   // validate the definition
-  validateDefinition(definitions, definition)
+  const updatedConfig = validateDefinition(definitions, definition)
+
+  return updatedConfig
 }
 
-const commitCreate = async (bucketId, definition, ackTime, session) => {
-  let options
+const commitCreate = async (bucketId, definition, idempotencyKey, ackTime, session) => {
+  const initialHash = generateHash(JSON.stringify(definition))
 
-  if(session) {
-    options = { session }
+  let options = {
+    upsert: true
   }
 
-  const newDefinition = await Definition.create([{
+  if(session) {
+    options = {
+      ...options,
+      session
+    }
+  }
+
+  const matchCondition = {
+    '@bucketId': bucketId,
+    '@idempotencyKey': idempotencyKey,
+    '@initialHash': initialHash
+  }
+
+  const newDefinition = await Definition.findOneAndUpdate(matchCondition, {
+    '@definition': definition,
     '@state': 'ENABLED',
     '@lastModified': ackTime,
     '@lastCommitted': new Date(),
-    '@version': 0,
     '@bucketId': bucketId,
-    '@definition': definition
-  }], options)
+    '@idempotencyKey': idempotencyKey,
+    '@initialHash': initialHash,
+    '@version': 0
+  }, options)
 
-  return newDefinition[0]._id.toString()
+  const details = {
+    id: newDefinition._id,
+    name: newDefinition['@definition'].name,
+    class: newDefinition['@definition'].class
+  }
+
+  return details
 }
 
 module.exports = async ({ environment, args, ackTime, session }) => {
-  const { bucket } = environment
-  
-  await validateCreate(bucket.id, args)
+  const { bucket, idempotencyKey } = environment
 
-  return await commitCreate(bucket.id, args, ackTime, session)
+  const updatedConfig = await validateCreate(bucket.id, args)
+
+  const definition = await commitCreate(bucket.id, args, idempotencyKey, ackTime, session)
+
+  return { bucket, definition, updatedConfig }
 }

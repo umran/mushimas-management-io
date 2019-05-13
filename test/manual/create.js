@@ -12,11 +12,11 @@ const environment = {
 }
 
 const definition = {
-  name: 'contact',
+  name: 'socialMedia',
   class: 'embedded',
   fields: [
     {
-      name: 'email',
+      name: 'facebook',
       options: {
         type: 'string',
         required: true,

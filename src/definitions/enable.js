@@ -1,8 +1,8 @@
 const { Definition } = require('mushimas-models')
-const { getBucketDefinitions, getDefinition, validateDisableDefinition } = require('./utils')
+const { getBucketDefinitions, getDefinition, validateEnableDefinition } = require('./utils')
 const { ResourceError } = require('../errors')
 
-const validateDelete = async (bucketId, _id) => {
+const validateEnable = async (bucketId, _id) => {
   const definitions = await getBucketDefinitions(bucketId)
 
   const definition = getDefinition(definitions, _id)
@@ -12,12 +12,12 @@ const validateDelete = async (bucketId, _id) => {
   }
 
   // validate the definition
-  const updatedConfig = validateDisableDefinition(definitions, definition)
+  const updatedConfig = validateEnableDefinition(definitions, definition)
 
   return updatedConfig
 }
 
-const commitDelete = async (bucketId, _id, ackTime, session) => {
+const commitEnable = async (bucketId, _id, ackTime, session) => {
 
   let options
 
@@ -31,9 +31,9 @@ const commitDelete = async (bucketId, _id, ackTime, session) => {
     '@state': { $ne: 'DELETED' }
   }
 
-  const deletedDefinition = await Definition.findOneAndUpdate(matchCondition, {
+  const enabledDefinition = await Definition.findOneAndUpdate(matchCondition, {
     $set: {
-      '@state': 'DELETED',
+      '@state': 'ENABLED',
       '@lastModified': ackTime,
       '@lastCommitted': new Date(),
     },
@@ -42,14 +42,14 @@ const commitDelete = async (bucketId, _id, ackTime, session) => {
     }
   }, options)
 
-  if (!deletedDefinition) {
+  if (!enabledDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
   }
 
   const details = {
-    id: deletedDefinition._id,
-    name: deletedDefinition['@definition'].name,
-    class: deletedDefinition['@definition'].class
+    id: enabledDefinition._id,
+    name: enabledDefinition['@definition'].name,
+    class: enabledDefinition['@definition'].class
   }
 
   return details
@@ -59,9 +59,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
   const { _id } = args
   
-  const updatedConfig = await validateDelete(bucket.id, _id)
+  const updatedConfig = await validateEnable(bucket.id, _id)
 
-  const definition = await commitDelete(bucket.id, _id, ackTime, session)
+  const definition = await commitEnable(bucket.id, _id, ackTime, session)
 
   return { bucket, definition, updatedConfig }
 }
