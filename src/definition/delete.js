@@ -12,13 +12,10 @@ const validateDelete = async (bucketId, _id) => {
   }
 
   // validate the definition
-  const updatedConfig = validateDisableDefinition(definitions, definition)
-
-  return updatedConfig
+  return validateDisableDefinition(definitions, definition)
 }
 
 const commitDelete = async (bucketId, _id, ackTime, session) => {
-
   let options
 
   if(session) {
@@ -47,7 +44,7 @@ const commitDelete = async (bucketId, _id, ackTime, session) => {
   }
 
   const details = {
-    id: deletedDefinition._id,
+    _id: deletedDefinition._id,
     name: deletedDefinition['@definition'].name,
     class: deletedDefinition['@definition'].class
   }
@@ -59,9 +56,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
   const { _id } = args
   
-  const updatedConfig = await validateDelete(bucket.id, _id)
+  const { configuration, collectionMapping } = await validateDelete(bucket.id, _id)
 
   const definition = await commitDelete(bucket.id, _id, ackTime, session)
 
-  return { bucket, definition, updatedConfig }
+  return { bucket, definition, collectionMapping, configuration }
 }

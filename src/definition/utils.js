@@ -66,14 +66,6 @@ const getBucketDefinitions = async bucketId => {
   })
 }
 
-const ensureUniqueDefinition = (definitions, definition) => {
-  definitions.forEach(def => {
-    if (def.name === definition.name) {
-      throw new ValidationError('alreadyExistsDefinition', `the definition: ${definition.name} already exists`)
-    }
-  })
-}
-
 const getDefinition = (definitions, _id) => {
   const matching = definitions.filter(def => def._id === _id)
 
@@ -105,6 +97,28 @@ const appendConfig = (currentConfig, definition) => {
   }
 }
 
+const getCollectionMapping = definitions => {
+  return definitions.reduce((mapping, definition) => {
+    if (definition.class === 'collection') {
+      mapping[definition.name] = definition._id
+    }
+
+    return mapping
+  }, {})
+}
+
+const appendCollectionMapping = (mappings, definition) => {
+  if (definition.class === 'embedded') {
+    return mappings
+  }
+
+  return {
+    ...mappings,
+    [definition.name]: definition._id
+  }
+}
+
+// the validation method used in the create and update methods
 const validateDefinition = (definitions, definition) => {
   // independently validate the definition
   const rawSchema = parseDefinition(definition, false)
@@ -137,9 +151,13 @@ const validateDefinition = (definitions, definition) => {
     throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
   }
 
-  return newConfig
+  // generate definition id mappings
+  const collectionMapping = getCollectionMapping(enabledDefinitions)
+
+  return { configuration: newConfig, collectionMapping }
 }
 
+// the validation method used in the enable method
 const validateEnableDefinition = (definitions, definition) => {
   // get all enabled definitions
   const enabledDefinitions = getEnabledDefinitions(definitions)
@@ -163,9 +181,13 @@ const validateEnableDefinition = (definitions, definition) => {
     throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
   }
 
-  return newConfig
+  // generate definition id mappings
+  const collectionMapping = getCollectionMapping(enabledDefinitions)
+
+  return { configuration: newConfig, collectionMapping }
 }
 
+// the validation method used in the disable and delete methods
 const validateDisableDefinition = (definitions, definition) => {
   // get all enabled definitions except the definition to be disabled
   const remainingEnabledDefinitions = getRemainingEnabledDefinitions(definitions, definition)
@@ -175,7 +197,7 @@ const validateDisableDefinition = (definitions, definition) => {
 
   // validate the new config
   try {
-    validateReferences(newConfig)  
+    validateReferences(newConfig) 
   } catch(err) {
     throw new ValidationError('nullReference', 'fields referencing non-existent or disabled definitions cannot be enabled')
   }
@@ -186,7 +208,10 @@ const validateDisableDefinition = (definitions, definition) => {
     throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
   }
 
-  return newConfig
+  // generate definition id mappings
+  const collectionMapping = getCollectionMapping(remainingEnabledDefinitions)
+
+  return { configuration: newConfig, collectionMapping }
 }
 
 module.exports = {
@@ -194,7 +219,7 @@ module.exports = {
   find,
   getBucketDefinitions,
   getDefinition,
-  ensureUniqueDefinition,
+  appendCollectionMapping,
   validateDefinition,
   validateEnableDefinition,
   validateDisableDefinition

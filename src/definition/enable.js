@@ -1,8 +1,8 @@
 const { Definition } = require('mushimas-models')
-const { getBucketDefinitions, getDefinition, validateDisableDefinition } = require('./utils')
+const { getBucketDefinitions, getDefinition, appendCollectionMapping, validateEnableDefinition } = require('./utils')
 const { ResourceError } = require('../errors')
 
-const validateDisable = async (bucketId, _id) => {
+const validateEnable = async (bucketId, _id) => {
   const definitions = await getBucketDefinitions(bucketId)
 
   const definition = getDefinition(definitions, _id)
@@ -12,13 +12,10 @@ const validateDisable = async (bucketId, _id) => {
   }
 
   // validate the definition
-  const updatedConfig = validateDisableDefinition(definitions, definition)
-
-  return updatedConfig
+  return validateEnableDefinition(definitions, definition)
 }
 
-const commitDisable = async (bucketId, _id, ackTime, session) => {
-
+const commitEnable = async (bucketId, _id, ackTime, session) => {
   let options
 
   if(session) {
@@ -31,9 +28,9 @@ const commitDisable = async (bucketId, _id, ackTime, session) => {
     '@state': { $ne: 'DELETED' }
   }
 
-  const disabledDefinition = await Definition.findOneAndUpdate(matchCondition, {
+  const enabledDefinition = await Definition.findOneAndUpdate(matchCondition, {
     $set: {
-      '@state': 'DISABLED',
+      '@state': 'ENABLED',
       '@lastModified': ackTime,
       '@lastCommitted': new Date(),
     },
@@ -42,14 +39,14 @@ const commitDisable = async (bucketId, _id, ackTime, session) => {
     }
   }, options)
 
-  if (!disabledDefinition) {
+  if (!enabledDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
   }
 
   const details = {
-    id: disabledDefinition._id,
-    name: disabledDefinition['@definition'].name,
-    class: disabledDefinition['@definition'].class
+    _id: enabledDefinition._id,
+    name: enabledDefinition['@definition'].name,
+    class: enabledDefinition['@definition'].class
   }
 
   return details
@@ -59,9 +56,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
   const { _id } = args
   
-  const updatedConfig = await validateDisable(bucket.id, _id)
+  const { configuration, collectionMapping } = await validateEnable(bucket.id, _id)
 
-  const definition = await commitDisable(bucket.id, _id, ackTime, session)
+  const definition = await commitEnable(bucket.id, _id, ackTime, session)
 
-  return { bucket, definition, updatedConfig }
+  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), configuration }
 }

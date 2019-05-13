@@ -1,5 +1,5 @@
 const { Definition } = require('mushimas-models')
-const { find, getBucketDefinitions, getDefinition, validateDefinition } = require('./utils')
+const { find, getBucketDefinitions, getDefinition, appendCollectionMapping, validateDefinition } = require('./utils')
 const validOptions = require('./validOptions')
 const flatten = require('./flatten')
 const { ResourceError, ValidationError } = require('../errors')
@@ -78,9 +78,9 @@ const validateUpdate = async (bucketId, _id, updates) => {
   }
 
   // finally validate the updated definition
-  const updatedConfig = validateDefinition(definitions, updatedDefinition)
+  const { configuration, collectionMapping } = validateDefinition(definitions, updatedDefinition)
 
-  return { updatedFields, updatedConfig }
+  return { updatedFields, configuration, collectionMapping }
 }
 
 const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
@@ -117,7 +117,7 @@ const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
   }
 
   const details = {
-    id: updatedDefinition._id,
+    _id: updatedDefinition._id,
     name: updatedDefinition['@definition'].name,
     class: updatedDefinition['@definition'].class
   }
@@ -129,9 +129,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
   const { _id, fields } = args
   
-  const { updatedFields, updatedConfig } = await validateUpdate(bucket.id, _id, fields)
+  const { updatedFields, configuration, collectionMapping } = await validateUpdate(bucket.id, _id, fields)
 
   const definition = await commitUpdate(bucket.id, _id, updatedFields, ackTime, session)
 
-  return { bucket, definition, updatedConfig }
+  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), configuration }
 }
