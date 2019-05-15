@@ -56,9 +56,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
   const { _id } = args
   
-  const { configuration, collectionMapping } = await validateDelete(bucket.id, _id)
+  const { schemas, collectionMapping } = await validateDelete(bucket.id, _id)
 
   const definition = await commitDelete(bucket.id, _id, ackTime, session)
 
-  return { bucket, definition, collectionMapping, configuration }
+  return { bucket, definition, collectionMapping, schemas }
 }

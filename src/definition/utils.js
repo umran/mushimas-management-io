@@ -82,17 +82,17 @@ const getRemainingEnabledDefinitions = (definitions, excludedDefinition) => {
   return definitions.filter(definition => definition.state === 'ENABLED' && definition._id !== excludedDefinition._id)
 }
 
-const compileConfig = (relevantDefinitions) => {
-  return relevantDefinitions.reduce((config, definition) => {
-    config[definition.name] = parseDefinition(definition)
+const compileSchemas = (relevantDefinitions) => {
+  return relevantDefinitions.reduce((schemas, definition) => {
+    schemas[definition.name] = parseDefinition(definition)
 
-    return config
+    return schemas
   }, {})
 }
 
-const appendConfig = (currentConfig, definition) => {
+const appendSchemas = (currentSchemas, definition) => {
   return {
-    ...currentConfig,
+    ...currentSchemas,
     [definition.name]: parseDefinition(definition)
   }
 }
@@ -133,20 +133,20 @@ const validateDefinition = (definitions, definition) => {
   const enabledDefinitions = getEnabledDefinitions(definitions)
 
   // compile all enabled definitions
-  const currentConfig = compileConfig(enabledDefinitions)
+  const currentSchemas = compileSchemas(enabledDefinitions)
 
-  // append the definition to be validated to the compiled config
-  const newConfig = appendConfig(currentConfig, definition)
+  // append the definition to be validated to the compiled schemas
+  const newSchemas = appendSchemas(currentSchemas, definition)
 
-  // validate the new config
+  // validate the new schemas
   try {
-    validateReferences(newConfig)  
+    validateReferences(newSchemas)  
   } catch(err) {
     throw new ValidationError('nullReference', 'fields referencing non-existent or disabled definitions cannot be enabled')
   }
   
   try {
-    validateEmbedded(newConfig)
+    validateEmbedded(newSchemas)
   } catch(err) {
     throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
   }
@@ -154,7 +154,7 @@ const validateDefinition = (definitions, definition) => {
   // generate definition id mappings
   const collectionMapping = getCollectionMapping(enabledDefinitions)
 
-  return { configuration: newConfig, collectionMapping }
+  return { schemas: newSchemas, collectionMapping }
 }
 
 // the validation method used in the enable method
@@ -163,20 +163,20 @@ const validateEnableDefinition = (definitions, definition) => {
   const enabledDefinitions = getEnabledDefinitions(definitions)
 
   // compile all enabled definitions
-  const currentConfig = compileConfig(enabledDefinitions)
+  const currentSchemas = compileSchemas(enabledDefinitions)
 
-  // append the definition to be validated to the compiled config
-  const newConfig = appendConfig(currentConfig, definition)
+  // append the definition to be validated to the compiled schemas
+  const newSchemas = appendSchemas(currentSchemas, definition)
 
-  // validate the new config
+  // validate the new schemas
   try {
-    validateReferences(newConfig)  
+    validateReferences(newSchemas)  
   } catch(err) {
     throw new ValidationError('nullReference', 'fields referencing non-existent or disabled definitions cannot be enabled')
   }
   
   try {
-    validateEmbedded(newConfig)
+    validateEmbedded(newSchemas)
   } catch(err) {
     throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
   }
@@ -184,7 +184,7 @@ const validateEnableDefinition = (definitions, definition) => {
   // generate definition id mappings
   const collectionMapping = getCollectionMapping(enabledDefinitions)
 
-  return { configuration: newConfig, collectionMapping }
+  return { schemas: newSchemas, collectionMapping }
 }
 
 // the validation method used in the disable and delete methods
@@ -193,17 +193,17 @@ const validateDisableDefinition = (definitions, definition) => {
   const remainingEnabledDefinitions = getRemainingEnabledDefinitions(definitions, definition)
 
   // compile all remaining enabled definitions
-  const newConfig = compileConfig(remainingEnabledDefinitions)
+  const newSchemas = compileSchemas(remainingEnabledDefinitions)
 
-  // validate the new config
+  // validate the new schemas
   try {
-    validateReferences(newConfig) 
+    validateReferences(newSchemas)
   } catch(err) {
     throw new ValidationError('nullReference', 'fields referencing non-existent or disabled definitions cannot be enabled')
   }
   
   try {
-    validateEmbedded(newConfig)
+    validateEmbedded(newSchemas)
   } catch(err) {
     throw new ValidationError('embeddedCircularReference', 'circular references between embedded definitions are not allowed')
   }
@@ -211,7 +211,7 @@ const validateDisableDefinition = (definitions, definition) => {
   // generate definition id mappings
   const collectionMapping = getCollectionMapping(remainingEnabledDefinitions)
 
-  return { configuration: newConfig, collectionMapping }
+  return { schemas: newSchemas, collectionMapping }
 }
 
 module.exports = {

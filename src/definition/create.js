@@ -49,9 +49,9 @@ const commitCreate = async (bucketId, definition, ackTime, session) => {
 module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
 
-  const { configuration, collectionMapping } = await validateCreate(bucket.id, args)
+  const { schemas, collectionMapping } = await validateCreate(bucket.id, args)
 
   const definition = await commitCreate(bucket.id, args, ackTime, session)
 
-  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), configuration }
+  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
 }

@@ -3,7 +3,7 @@ const { ResourceError } = require('../errors')
 
 module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
-  const { collectionMapping, configuration } = args
+  const { collectionMapping, schemas } = args
 
   let options
 
@@ -20,7 +20,7 @@ module.exports = async ({ environment, args, ackTime, session }) => {
     $set: {
       '@configuration': {
         collectionMapping: JSON.stringify(collectionMapping),
-        configuration: JSON.stringify(configuration)
+        schemas: JSON.stringify(schemas)
       },
       '@lastModified': ackTime,
       '@lastCommitted': new Date()

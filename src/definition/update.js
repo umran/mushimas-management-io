@@ -78,9 +78,9 @@ const validateUpdate = async (bucketId, _id, updates) => {
   }
 
   // finally validate the updated definition
-  const { configuration, collectionMapping } = validateDefinition(definitions, updatedDefinition)
+  const { schemas, collectionMapping } = validateDefinition(definitions, updatedDefinition)
 
-  return { updatedFields, configuration, collectionMapping }
+  return { updatedFields, schemas, collectionMapping }
 }
 
 const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
@@ -129,9 +129,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   const { bucket } = environment
   const { _id, fields } = args
   
-  const { updatedFields, configuration, collectionMapping } = await validateUpdate(bucket.id, _id, fields)
+  const { updatedFields, schemas, collectionMapping } = await validateUpdate(bucket.id, _id, fields)
 
   const definition = await commitUpdate(bucket.id, _id, updatedFields, ackTime, session)
 
-  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), configuration }
+  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
 }
