@@ -122,5 +122,5 @@ module.exports = async ({ environment, args }) => {
 
   const definition = await commitUpdate(bucket.id, _id, updatedFields)
 
-  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
+  return { definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
 }

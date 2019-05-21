@@ -50,5 +50,5 @@ module.exports = async ({ environment, args }) => {
 
   const definition = await commitEnable(bucket.id, _id)
 
-  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
+  return { definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
 }

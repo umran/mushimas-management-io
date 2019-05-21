@@ -50,5 +50,5 @@ module.exports = async ({ environment, args }) => {
 
   const definition = await commitDisable(bucket.id, _id)
 
-  return { bucket, definition, collectionMapping, schemas }
+  return { definition, collectionMapping, schemas }
 }

@@ -44,5 +44,5 @@ module.exports = async ({ environment, args }) => {
 
   const definition = await commitCreate(bucket.id, args)
 
-  return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
+  return { definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
 }

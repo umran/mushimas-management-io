@@ -25,8 +25,9 @@ const createMapping = async (index, mapping, client) => {
 }
 
 // the upsert method should be used on creation of or updating a definition
-module.exports = async ({environment, definition, schemas, client}) => {
+module.exports = client => async ({ environment, args }) => {
   const { bucket } = environment
+  const { definition, schemas } = args
 
   const mappings = generateElasticMappings(schemas)
 
@@ -39,4 +40,6 @@ module.exports = async ({environment, definition, schemas, client}) => {
 
   await createIndex(`${bucket.id}_${definition._id}`, client)
   await createMapping(`${bucket.id}_${definition._id}`, relevantMapping, client)
+
+  return args
 }
