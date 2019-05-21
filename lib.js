@@ -1,3 +1,4 @@
-exports.cache = require('./src/cache')
-exports.database = require('./src/database')
-exports.search = require('./src/search')
+exports.bucket = require('./src/bucket')
+exports.configuration = require('./src/configuration')
+exports.definition = require('./src/definition')
+exports.mapping = require('./src/mapping')
