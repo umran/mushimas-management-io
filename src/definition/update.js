@@ -83,14 +83,7 @@ const validateUpdate = async (bucketId, _id, updates) => {
   return { updatedFields, schemas, collectionMapping }
 }
 
-const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
-  // this variable must be mutable
-  let options
-
-  if (session) {
-    options = { session }
-  }
-
+const commitUpdate = async (bucketId, _id, fields) => {
   const flatDef = flatten({
     '@definition': { fields }
   })
@@ -104,13 +97,9 @@ const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
   let updatedDefinition = await Definition.findOneAndUpdate(matchCondition, {
     $set: {
       ...flatDef,
-      '@lastModified': ackTime,
-      '@lastCommitted': new Date()
-    },
-    $inc: {
-      '@version': 1
+      '@lastModified': new Date()
     }
-  }, options)
+  })
 
   if (!updatedDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
@@ -125,13 +114,13 @@ const commitUpdate = async (bucketId, _id, fields, ackTime, session) => {
   return details
 }
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment, args }) => {
   const { bucket } = environment
   const { _id, fields } = args
   
   const { updatedFields, schemas, collectionMapping } = await validateUpdate(bucket.id, _id, fields)
 
-  const definition = await commitUpdate(bucket.id, _id, updatedFields, ackTime, session)
+  const definition = await commitUpdate(bucket.id, _id, updatedFields)
 
   return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
 }

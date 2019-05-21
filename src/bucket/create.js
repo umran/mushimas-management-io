@@ -1,18 +1,11 @@
 const { Bucket } = require('mushimas-models')
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment, args }) => {
   const { organization } = environment
 
   let options = {
     upsert: true,
     new: true
-  }
-
-  if (session) {
-    options = {
-      ...options,
-      session
-    }
   }
 
   const matchCondition = {
@@ -24,10 +17,8 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   let newBucket = await Bucket.findOneAndUpdate(matchCondition, {
     '@bucket': args,
     '@state': 'ENABLED',
-    '@lastModified': ackTime,
-    '@lastCommitted': new Date(),
-    '@organizationId': organization.id,
-    '@version': 0
+    '@lastModified': new Date(),
+    '@organizationId': organization.id
   }, options)
 
   return newBucket._id.toString()

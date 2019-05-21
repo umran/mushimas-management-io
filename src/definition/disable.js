@@ -15,13 +15,7 @@ const validateDisable = async (bucketId, _id) => {
   return validateDisableDefinition(definitions, definition)
 }
 
-const commitDisable = async (bucketId, _id, ackTime, session) => {
-  let options
-
-  if(session) {
-    options = { session }
-  }
-
+const commitDisable = async (bucketId, _id) => {
   const matchCondition = {
     _id,
     '@bucketId': bucketId,
@@ -31,13 +25,9 @@ const commitDisable = async (bucketId, _id, ackTime, session) => {
   const disabledDefinition = await Definition.findOneAndUpdate(matchCondition, {
     $set: {
       '@state': 'DISABLED',
-      '@lastModified': ackTime,
-      '@lastCommitted': new Date(),
-    },
-    $inc: {
-      '@version': 1
+      '@lastModified': new Date()
     }
-  }, options)
+  })
 
   if (!disabledDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
@@ -52,13 +42,13 @@ const commitDisable = async (bucketId, _id, ackTime, session) => {
   return details
 }
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment, args }) => {
   const { bucket } = environment
   const { _id } = args
   
   const { schemas, collectionMapping } = await validateDisable(bucket.id, _id)
 
-  const definition = await commitDisable(bucket.id, _id, ackTime, session)
+  const definition = await commitDisable(bucket.id, _id)
 
   return { bucket, definition, collectionMapping, schemas }
 }

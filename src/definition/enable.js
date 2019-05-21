@@ -15,13 +15,7 @@ const validateEnable = async (bucketId, _id) => {
   return validateEnableDefinition(definitions, definition)
 }
 
-const commitEnable = async (bucketId, _id, ackTime, session) => {
-  let options
-
-  if(session) {
-    options = { session }
-  }
-
+const commitEnable = async (bucketId, _id) => {
   const matchCondition = {
     _id,
     '@bucketId': bucketId,
@@ -31,13 +25,9 @@ const commitEnable = async (bucketId, _id, ackTime, session) => {
   const enabledDefinition = await Definition.findOneAndUpdate(matchCondition, {
     $set: {
       '@state': 'ENABLED',
-      '@lastModified': ackTime,
-      '@lastCommitted': new Date(),
-    },
-    $inc: {
-      '@version': 1
+      '@lastModified': new Date()
     }
-  }, options)
+  })
 
   if (!enabledDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
@@ -52,13 +42,13 @@ const commitEnable = async (bucketId, _id, ackTime, session) => {
   return details
 }
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment, args }) => {
   const { bucket } = environment
   const { _id } = args
   
   const { schemas, collectionMapping } = await validateEnable(bucket.id, _id)
 
-  const definition = await commitEnable(bucket.id, _id, ackTime, session)
+  const definition = await commitEnable(bucket.id, _id)
 
   return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
 }

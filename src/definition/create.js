@@ -8,18 +8,11 @@ const validateCreate = async (bucketId, definition) => {
   return validateDefinition(definitions, definition)
 }
 
-const commitCreate = async (bucketId, definition, ackTime, session) => {
+const commitCreate = async (bucketId, definition) => {
 
   let options = {
     upsert: true,
     new: true
-  }
-
-  if(session) {
-    options = {
-      ...options,
-      session
-    }
   }
 
   const matchCondition = {
@@ -31,10 +24,8 @@ const commitCreate = async (bucketId, definition, ackTime, session) => {
   const newDefinition = await Definition.findOneAndUpdate(matchCondition, {
     '@definition': definition,
     '@state': 'ENABLED',
-    '@lastModified': ackTime,
-    '@lastCommitted': new Date(),
-    '@bucketId': bucketId,
-    '@version': 0
+    '@lastModified': new Date(),
+    '@bucketId': bucketId
   }, options)
 
   const details = {
@@ -46,12 +37,12 @@ const commitCreate = async (bucketId, definition, ackTime, session) => {
   return details
 }
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment, args }) => {
   const { bucket } = environment
 
   const { schemas, collectionMapping } = await validateCreate(bucket.id, args)
 
-  const definition = await commitCreate(bucket.id, args, ackTime, session)
+  const definition = await commitCreate(bucket.id, args)
 
   return { bucket, definition, collectionMapping: appendCollectionMapping(collectionMapping, definition), schemas }
 }

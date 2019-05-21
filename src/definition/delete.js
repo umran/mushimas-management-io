@@ -15,13 +15,7 @@ const validateDelete = async (bucketId, _id) => {
   return validateDisableDefinition(definitions, definition)
 }
 
-const commitDelete = async (bucketId, _id, ackTime, session) => {
-  let options
-
-  if(session) {
-    options = { session }
-  }
-
+const commitDelete = async (bucketId, _id) => {
   const matchCondition = {
     _id,
     '@bucketId': bucketId,
@@ -31,13 +25,9 @@ const commitDelete = async (bucketId, _id, ackTime, session) => {
   const deletedDefinition = await Definition.findOneAndUpdate(matchCondition, {
     $set: {
       '@state': 'DELETED',
-      '@lastModified': ackTime,
-      '@lastCommitted': new Date(),
-    },
-    $inc: {
-      '@version': 1
+      '@lastModified': new Date()
     }
-  }, options)
+  })
 
   if (!deletedDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
@@ -52,13 +42,13 @@ const commitDelete = async (bucketId, _id, ackTime, session) => {
   return details
 }
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment, args }) => {
   const { bucket } = environment
   const { _id } = args
   
   const { schemas, collectionMapping } = await validateDelete(bucket.id, _id)
 
-  const definition = await commitDelete(bucket.id, _id, ackTime, session)
+  const definition = await commitDelete(bucket.id, _id)
 
   return { bucket, definition, collectionMapping, schemas }
 }

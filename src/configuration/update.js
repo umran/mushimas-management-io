@@ -1,15 +1,9 @@
 const { Configuration } = require('mushimas-models')
 const { ResourceError } = require('../errors')
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment, args }) => {
   const { bucket } = environment
   const { collectionMapping, schemas } = args
-
-  let options
-
-  if (session) {
-    options = { session }
-  }
 
   const matchCondition = {
     '@state': 'ENABLED',
@@ -22,13 +16,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
         collectionMapping: JSON.stringify(collectionMapping),
         schemas: JSON.stringify(schemas)
       },
-      '@lastModified': ackTime,
-      '@lastCommitted': new Date()
-    },
-    $inc: {
-      '@version': 1
+      '@lastModified': new Date()
     }
-  }, options)
+  })
 
   if (!updatedConfiguration) {
     throw new ResourceError('notFound', `could not find an enabled configuration record for bucket with id: ${bucket.id}`)

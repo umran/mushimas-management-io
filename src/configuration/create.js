@@ -1,19 +1,12 @@
 const { Configuration } = require('mushimas-models')
 
 // this method should only be used on creation of a new bucket
-module.exports = async ({ environment, ackTime, session }) => {
+module.exports = async ({ environment }) => {
   const { bucket } = environment
 
   let options = {
     upsert: true,
     new: true
-  }
-
-  if (session) {
-    options = {
-      ...options,
-      session
-    }
   }
 
   const matchCondition = {
@@ -22,10 +15,8 @@ module.exports = async ({ environment, ackTime, session }) => {
 
   let newConfiguration = await Configuration.findOneAndUpdate(matchCondition, {
     '@state': 'ENABLED',
-    '@lastModified': ackTime,
-    '@lastCommitted': new Date(),
-    '@bucketId': bucket.id,
-    '@version': 0
+    '@lastModified': new Date(),
+    '@bucketId': bucket.id
   }, options)
 
   return newConfiguration._id.toString()

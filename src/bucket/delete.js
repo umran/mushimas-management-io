@@ -1,15 +1,9 @@
 const { Bucket } = require('mushimas-models')
 const { ResourceError } = require('../errors')
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment, args }) => {
   const { organization } = environment
   const { _id } = args
-
-  let options
-
-  if (session) {
-    options = { session }
-  }
 
   const matchCondition = {
     _id,
@@ -20,13 +14,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   let deletedBucket = await Bucket.findOneAndUpdate(matchCondition, {
     $set: {
       '@state': 'DELETED',
-      '@lastModified': ackTime,
-      '@lastCommitted': new Date()
-    },
-    $inc: {
-      '@version': 1
+      '@lastModified': new Date()
     }
-  }, options)
+  })
 
   if (!deletedBucket) {
     throw new ResourceError('notFound', `could not find a bucket with id: ${_id} for organization with id: ${organization.id}`)

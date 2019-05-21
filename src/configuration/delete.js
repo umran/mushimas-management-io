@@ -1,14 +1,8 @@
 const { Configuration } = require('mushimas-models')
 const { ResourceError } = require('../errors')
 
-module.exports = async ({ environment, args, ackTime, session }) => {
+module.exports = async ({ environment }) => {
   const { bucket } = environment
-
-  let options
-
-  if (session) {
-    options = { session }
-  }
 
   const matchCondition = {
     '@state': { $ne: 'DELETED' },
@@ -18,13 +12,9 @@ module.exports = async ({ environment, args, ackTime, session }) => {
   let deletedConfiguration = await Configuration.findOneAndUpdate(matchCondition, {
     $set: {
       '@state': 'DELETED',
-      '@lastModified': ackTime,
-      '@lastCommitted': new Date()
-    },
-    $inc: {
-      '@version': 1
+      '@lastModified': new Date()
     }
-  }, options)
+  })
 
   if (!deletedConfiguration) {
     throw new ResourceError('notFound', `could not find a configuration record for bucket with id: ${bucket.id}`)
