@@ -40,6 +40,4 @@ module.exports = client => async ({ environment, args }) => {
 
   await createIndex(`${bucket.id}_${definition._id}`, client)
   await createMapping(`${bucket.id}_${definition._id}`, relevantMapping, client)
-
-  return args
 }
