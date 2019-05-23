@@ -4,21 +4,23 @@ const { Configuration } = require('mushimas-models')
 module.exports = async ({ environment }) => {
   const { bucket } = environment
 
-  let options = {
-    upsert: true,
-    new: true
-  }
-
+  // first check if a configuration by the same bucketId exists
   const matchCondition = {
     '@state': { $ne: 'DELETED' },
     '@bucketId': bucket.id
   }
 
-  let newConfiguration = await Configuration.findOneAndUpdate(matchCondition, {
+  const existingConfiguration = await Configuration.findOne(matchCondition).lean()
+
+  if (existingConfiguration) {
+    return existingConfiguration._id.toString()
+  }
+
+  const newConfiguration = await Configuration.create({
     '@state': 'ENABLED',
     '@lastModified': new Date(),
     '@bucketId': bucket.id
-  }, options)
+  })
 
   return newConfiguration._id.toString()
 }

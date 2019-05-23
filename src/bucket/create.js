@@ -3,23 +3,25 @@ const { Bucket } = require('mushimas-models')
 module.exports = async ({ environment, args }) => {
   const { organization } = environment
 
-  let options = {
-    upsert: true,
-    new: true
-  }
-
+  // first check if a bucket by the same name exists
   const matchCondition = {
+    '@state': { $ne: 'DELETED' },
     '@organizationId': organization.id,
-    '@bucket.name': args.name,
-    '@state': { $ne: 'DELETED' }
+    '@bucket.name': args.name
   }
 
-  let newBucket = await Bucket.findOneAndUpdate(matchCondition, {
+  const existingBucket = await Bucket.findOne(matchCondition).lean()
+
+  if (existingBucket) {
+    return existingBucket._id.toString()
+  }
+
+  const newBucket = await Bucket.create({
     '@bucket': args,
     '@state': 'ENABLED',
     '@lastModified': new Date(),
     '@organizationId': organization.id
-  }, options)
+  })
 
   return newBucket._id.toString()
 }

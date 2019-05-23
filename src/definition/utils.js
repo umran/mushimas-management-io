@@ -74,6 +74,14 @@ const getDefinition = (definitions, _id) => {
   }
 }
 
+const getDefinitionByName = (definitions, name) => {
+  const matching = definitions.filter(def => def.name === name)
+
+  if (matching.length > 0) {
+    return matching[0]
+  }
+}
+
 const getEnabledDefinitions = definitions => {
   return definitions.filter(definition => definition.state === 'ENABLED')
 }
@@ -219,6 +227,7 @@ module.exports = {
   find,
   getBucketDefinitions,
   getDefinition,
+  getDefinitionByName,
   appendCollectionMapping,
   validateDefinition,
   validateEnableDefinition,
