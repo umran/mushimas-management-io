@@ -10,6 +10,7 @@ module.exports = async ({ environment }) => {
   }
 
   const matchCondition = {
+    '@state': { $ne: 'DELETED' },
     '@bucketId': bucket.id
   }
 
