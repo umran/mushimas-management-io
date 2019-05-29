@@ -24,12 +24,12 @@ const validateCreate = async (bucketId, definition) => {
 }
 
 const commitCreate = async (bucketId, definition) => {  
-  const newDefinition = await Definition.create({
+  const [ newDefinition ] = await Definition.create([{
     '@definition': definition,
     '@state': 'ENABLED',
     '@lastModified': new Date(),
     '@bucketId': bucketId
-  })
+  }], { lean: true })
 
   return {
     _id: newDefinition._id,

@@ -99,7 +99,7 @@ const commitUpdate = async (bucketId, _id, fields) => {
       ...flatDef,
       '@lastModified': new Date()
     }
-  })
+  }, { new: true, lean: true })
 
   if (!updatedDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)

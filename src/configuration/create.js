@@ -13,14 +13,14 @@ module.exports = async ({ environment }) => {
   const existingConfiguration = await Configuration.findOne(matchCondition).lean()
 
   if (existingConfiguration) {
-    return existingConfiguration._id.toString()
+    return existingConfiguration
   }
 
-  const newConfiguration = await Configuration.create({
+  const [ newConfiguration ] = await Configuration.create([{
     '@state': 'ENABLED',
     '@lastModified': new Date(),
     '@bucketId': bucket.id
-  })
+  }], { lean: true })
 
   return newConfiguration
 }

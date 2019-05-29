@@ -16,12 +16,12 @@ module.exports = async ({ environment, args }) => {
     return existingBucket._id.toString()
   }
 
-  const newBucket = await Bucket.create({
+  const [ newBucket ] = await Bucket.create([{
     '@bucket': args,
     '@state': 'ENABLED',
     '@lastModified': new Date(),
     '@organizationId': organization.id
-  })
+  }], { lean: true })
 
   return newBucket._id.toString()
 }

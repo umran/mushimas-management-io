@@ -27,7 +27,7 @@ const commitDelete = async (bucketId, _id) => {
       '@state': 'DELETED',
       '@lastModified': new Date()
     }
-  })
+  }, { new: true, lean: true })
 
   if (!deletedDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)

@@ -27,7 +27,7 @@ const commitDisable = async (bucketId, _id) => {
       '@state': 'DISABLED',
       '@lastModified': new Date()
     }
-  })
+  }, { new: true, lean: true })
 
   if (!disabledDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)

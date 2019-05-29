@@ -14,7 +14,7 @@ module.exports = async ({ environment }) => {
       '@state': 'ENABLED',
       '@lastModified': new Date()
     }
-  }, { new: true })
+  }, { new: true, lean: true })
 
   if (!enabledConfiguration) {
     throw new ResourceError('notFound', `could not find a configuration record for bucket with id: ${bucket.id}`)

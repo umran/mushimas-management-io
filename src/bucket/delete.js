@@ -16,7 +16,7 @@ module.exports = async ({ environment, args }) => {
       '@state': 'DELETED',
       '@lastModified': new Date()
     }
-  })
+  }, { new: true, lean: true })
 
   if (!deletedBucket) {
     throw new ResourceError('notFound', `could not find a bucket with id: ${_id} for organization with id: ${organization.id}`)

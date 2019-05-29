@@ -14,7 +14,7 @@ module.exports = async ({ environment }) => {
       '@state': 'DELETED',
       '@lastModified': new Date()
     }
-  }, { new: true })
+  }, { new: true, lean: true })
 
   if (!deletedConfiguration) {
     throw new ResourceError('notFound', `could not find a configuration record for bucket with id: ${bucket.id}`)

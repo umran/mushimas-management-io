@@ -27,7 +27,7 @@ const commitEnable = async (bucketId, _id) => {
       '@state': 'ENABLED',
       '@lastModified': new Date()
     }
-  })
+  }, { new: true, lean: true })
 
   if (!enabledDefinition) {
     throw new ResourceError('notFound', `A definition with id: ${_id} could not be found in bucket with id: ${bucketId}`)
