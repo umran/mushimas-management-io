@@ -14,11 +14,11 @@ module.exports = async ({ environment }) => {
       '@state': 'DELETED',
       '@lastModified': new Date()
     }
-  })
+  }, { new: true })
 
   if (!deletedConfiguration) {
     throw new ResourceError('notFound', `could not find a configuration record for bucket with id: ${bucket.id}`)
   }
 
-  return deletedConfiguration._id.toString()
+  return deletedConfiguration
 }

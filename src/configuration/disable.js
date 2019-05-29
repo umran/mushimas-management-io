@@ -14,11 +14,11 @@ module.exports = async ({ environment }) => {
       '@state': 'DISABLED',
       '@lastModified': new Date()
     }
-  })
+  }, { new: true })
 
   if (!disabledConfiguration) {
     throw new ResourceError('notFound', `could not find a configuration record for bucket with id: ${bucket.id}`)
   }
 
-  return disabledConfiguration._id.toString()
+  return disabledConfiguration
 }

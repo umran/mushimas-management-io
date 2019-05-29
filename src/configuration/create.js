@@ -22,5 +22,5 @@ module.exports = async ({ environment }) => {
     '@bucketId': bucket.id
   })
 
-  return newConfiguration._id.toString()
+  return newConfiguration
 }
