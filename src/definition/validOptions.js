@@ -29,10 +29,6 @@ const reference = {
   enabled: {
     required: true,
     mutable: true
-  },
-  es_indexed: {
-    required: true,
-    mutable: false
   }
 }
 
@@ -48,14 +44,6 @@ const string = {
   enabled: {
     required: true,
     mutable: true
-  },
-  es_indexed: {
-    required: true,
-    mutable: false
-  },
-  es_keyword: {
-    required: true,
-    mutable: false
   }
 }
 
@@ -71,10 +59,6 @@ const integer = {
   enabled: {
     required: true,
     mutable: true
-  },
-  es_indexed: {
-    required: true,
-    mutable: false
   }
 }
 
@@ -90,10 +74,6 @@ const float = {
   enabled: {
     required: true,
     mutable: true
-  },
-  es_indexed: {
-    required: true,
-    mutable: false
   }
 }
 
@@ -109,10 +89,6 @@ const date = {
   enabled: {
     required: true,
     mutable: true
-  },
-  es_indexed: {
-    required: true,
-    mutable: false
   }
 }
 
@@ -128,10 +104,6 @@ const boolean = {
   enabled: {
     required: true,
     mutable: true
-  },
-  es_indexed: {
-    required: true,
-    mutable: false
   }
 }
 

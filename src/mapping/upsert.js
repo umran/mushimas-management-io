@@ -1,5 +1,6 @@
-const { generateElasticMappings } = require('mushimas').elasticsearch
-const staticMappings = require('./staticMappings')
+const mappings = require('./mappings')
+
+const INDEX = 'mushimas_document'
 
 const createIndex = async (index, client) => {
   try {
@@ -24,20 +25,7 @@ const createMapping = async (index, mapping, client) => {
   })
 }
 
-// the upsert method should be used on creation of or updating a definition
-module.exports = client => async ({ environment, args }) => {
-  const { bucket } = environment
-  const { definition, schemas } = args
-
-  const mappings = generateElasticMappings(schemas)
-
-  const relevantMapping = {
-    properties: {
-      ...mappings[definition.name]().properties,
-      ...staticMappings
-    }
-  }
-
-  await createIndex(`${bucket.id}_${definition._id}`, client)
-  await createMapping(`${bucket.id}_${definition._id}`, relevantMapping, client)
+module.exports = async client => {
+  await createIndex(INDEX, client)
+  await createMapping(INDEX, mappings, client)
 }
