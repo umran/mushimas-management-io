@@ -18,8 +18,7 @@ const validateDelete = async (bucketId, _id) => {
 const commitDelete = async (bucketId, _id) => {
   const matchCondition = {
     _id,
-    '@bucketId': bucketId,
-    '@state': { $ne: 'DELETED' }
+    '@bucketId': bucketId
   }
 
   const deletedDefinition = await Definition.findOneAndUpdate(matchCondition, {
