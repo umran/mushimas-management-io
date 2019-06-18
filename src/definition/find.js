@@ -15,7 +15,7 @@ module.exports = async ({ environment }) => {
     let extracted = {
       ...definition['@definition'],
       _id: definition._id.toString(),
-      _state: bucket['@state'],
+      _state: definition['@state'],
       _lastModified: definition['@lastModified']
     }
     
