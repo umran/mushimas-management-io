@@ -26,13 +26,13 @@
   "homepage": "https://github.com/umran/mushimas-management-io#readme",
   "devDependencies": {
     "chai": "^4.2.0",
-    "coveralls": "^3.0.2",
+    "coveralls": "^3.0.5",
     "istanbul": "^1.1.0-alpha.1",
     "mocha": "^5.2.0",
     "mocha-lcov-reporter": "^1.3.0"
   },
   "dependencies": {
-    "mushimas": "^6.0.0",
+    "mushimas": "^6.6.0",
     "mushimas-crypto": "^0.0.3",
     "mushimas-models": "^4.0.0"
   }
